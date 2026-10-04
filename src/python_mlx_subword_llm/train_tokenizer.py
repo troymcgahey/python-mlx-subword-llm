@@ -53,7 +53,7 @@ def main() -> None:
 
     tokenizer.save(str(TOKENIZER_PATH))
 
-    sample_text = "First Citizen:\nBeofre we proceed any further."
+    sample_text = "First Citizen:\nBefore we proceed any further."
     encoding = tokenizer.encode(sample_text)
     decoded_text = tokenizer.decode(encoding.ids)
 
