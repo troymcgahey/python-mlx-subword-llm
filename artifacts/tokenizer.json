@@ -39,7 +39,7 @@
   "model": {
     "type": "BPE",
     "dropout": null,
-    "unk_token": "<|unknwon|>",
+    "unk_token": "<|unknown|>",
     "continuing_subword_prefix": null,
     "end_of_word_suffix": null,
     "fuse_unk": false,
@@ -47,7 +47,7 @@
     "ignore_merges": false,
     "vocab": {
       "<|endoftext|>": 0,
-      "<|unknwon|>": 1,
+      "<|unknown|>": 1,
       "!": 2,
       "\"": 3,
       "#": 4,

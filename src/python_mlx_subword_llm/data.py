@@ -8,21 +8,23 @@ def load_text(path: Path) -> str:
 
     return path.read_text(encoding="utf-8")
 
-def split_token_sequence(
-    token_ids: Sequence[int],
+def split_text(
+    text: str,
     training_fraction: float = 0.9,
-) -> tuple[list[int], list[int]]:
-    """Divide token IDs into contiguous training and validation sets."""
+) -> tuple[str, str]:
+    """Divide raw text into contiguous training and validation sets."""
 
     if not 0.0 < training_fraction < 1.0:
-        raise ValueError("training_fraction must be between 0 and 1")
+        raise ValueError(
+            "training_fraction must be between 0 and 1"
+        )
 
-    split_index = int(len(token_ids) * training_fraction)
+    split_index = int(len(text) * training_fraction)
 
-    training_ids = list(token_ids[:split_index])
-    validation_ids = list(token_ids[split_index:])
+    training_text = text[:split_index]
+    validation_text= text[split_index:]
 
-    return training_ids, validation_ids
+    return training_text, validation_text
 
 def sample_batch(
     token_ids: Sequence[int],
