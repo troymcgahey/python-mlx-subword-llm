@@ -5,7 +5,7 @@
   "added_tokens": [
     {
       "id": 0,
-      "content": "|<endoftext|>",
+      "content": "<|endoftext|>",
       "single_word": false,
       "lstrip": false,
       "rstrip": false,
@@ -14,7 +14,7 @@
     },
     {
       "id": 1,
-      "content": "<|unknwon|>",
+      "content": "<|unknown|>",
       "single_word": false,
       "lstrip": false,
       "rstrip": false,
@@ -46,7 +46,7 @@
     "byte_fallback": false,
     "ignore_merges": false,
     "vocab": {
-      "|<endoftext|>": 0,
+      "<|endoftext|>": 0,
       "<|unknwon|>": 1,
       "!": 2,
       "\"": 3,

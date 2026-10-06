@@ -9,7 +9,7 @@ from tokenizers.trainers import BpeTrainer
 CORPUS_PATH = Path("data/raw/tiny_shakespeare.txt")
 TOKENIZER_PATH = Path("artifacts/tokenizer.json")
 
-END_TOKEN = "|<endoftext|>"
+END_TOKEN = "<|endoftext|>"
 UNKNOWN_TOKEN = "<|unknwon|>"
 
 VOCABULARY_SIZE = 4096
