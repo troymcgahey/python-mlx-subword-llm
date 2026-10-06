@@ -10,7 +10,7 @@ CORPUS_PATH = Path("data/raw/tiny_shakespeare.txt")
 TOKENIZER_PATH = Path("artifacts/tokenizer.json")
 
 END_TOKEN = "<|endoftext|>"
-UNKNOWN_TOKEN = "<|unknwon|>"
+UNKNOWN_TOKEN = "<|unknown|>"
 
 VOCABULARY_SIZE = 4096
 TRAINING_FRACTION = 0.9

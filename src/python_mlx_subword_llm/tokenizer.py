@@ -50,7 +50,7 @@ class SubwordTokenizer:
             )
 
         self._end_token_id = end_token_id
-        self._unknwon_token_id = unknown_token_id
+        self._unknown_token_id = unknown_token_id
 
     @property
     def vocabulary_size(self) -> int:
