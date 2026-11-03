@@ -145,7 +145,7 @@ class FeedForward(nn.Module):
                 config.embedding_size,
                 config.feed_forward_size,
             ),
-            nn.GELU,
+            nn.GELU(),
             nn.Linear(
                 config.feed_forward_size,
                 config.embedding_size,
