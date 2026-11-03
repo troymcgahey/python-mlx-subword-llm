@@ -81,21 +81,36 @@ class CausalSelfAttention(nn.Module):
 
         attention_scores = attention_scores / math.sqrt(self.head_size)
 
-        # Entries above diagnol represent future positions.
-        causal_mask = mx.triu(
-            mx.full(
-                (sequence_length, sequence_length),
-                float("-inf"),
-            ),
-            k=1,
-        )
+#        # Entries above diagnol represent future positions.
+#        causal_mask = mx.triu(
+#            mx.full(
+#                (sequence_length, sequence_length),
+#                float("-inf"),
+#            ),
+#            k=1,
+#        )
+#
+#        attention_scores = attention_scores + causal_mask
 
-        attention_scores = attention_scores + causal_mask
+        # Colunm positions are key positions.
+        key_positions = mx.arange(sequence_length)[None, :]
+
+        # Row positions are query positions.
+        query_positions = mx.arange(sequence_length)[:, None]
+
+        # True wherever a key is in the query's future.
+        causal_mask = key_positions > query_positions
+
+        attention_scores = mx.where(
+            causal_mask,
+            float("-inf"),
+            attention_scores,
+        )
 
         # Normalize across the key positions.
         attention_weights = mx.softmax(
             attention_scores,
-            axis=1,
+            axis=-1,
         )
 
         # Shape: (batch, heads, sequence, head_size)
