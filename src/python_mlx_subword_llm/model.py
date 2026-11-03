@@ -134,4 +134,77 @@ class CausalSelfAttention(nn.Module):
 
         return output
 
+class FeedForward(nn.Module):
+    """Process each token position indepently."""
+
+    def __init__(self, config: ModelConfig) -> None:
+        super().__init__()
+
+        self.layers = nn.Sequential(
+            nn.Linear(
+                config.embedding_size,
+                config.feed_forward_size,
+            ),
+            nn.GELU,
+            nn.Linear(
+                config.feed_forward_size,
+                config.embedding_size,
+            ),
+        )
+
+    def __call__(self, inputs: mx.array) -> mx.array:
+        return self.layers(inputs)
+
+class TransformerBlock(nn.Module):
+    """One pre-normalized Transformer decoder block."""
+
+    def __init__(self, config: ModelConfig) -> None:
+        super().__init__()
+
+        self.attention_normalization = nn.LayerNorm(
+            config.embedding_size
+        )
+
+        self.attention = CausalSelfAttention(config)
+
+        self.feed_forward_normalization = nn.LayerNorm(
+            config.embedding_size
+        )
+
+        self.feed_forward = FeedForward(config)
+
+    def __call__(
+        self,
+        inputs: mx.array,
+        return_attention: bool = False,
+    ) -> mx.array | tuple[mx.array, mx.array]:
+        # Normalize before attention.
+        normalized_inputs = self.attention_normalization(inputs)
             
+        if return_attention:
+            attention_output, attention_weights = self.attention(
+                normalized_inputs,
+                return_attention=True,
+            )
+        else:
+            attention_output = self.attention(normalized_inputs)
+
+        # First residual connection
+        hidden_states = inputs + attention_output
+
+        # Normalized before the feed-forward network.
+        normalized_hidden_states = (
+            self.feed_forward_normalization(hidden_states)
+        )
+
+        feed_forward_output = self.feed_forward(
+            normalized_hidden_states
+        )
+
+        # Second residual connection.
+        output = hidden_states + feed_forward_output
+
+        if return_attention:
+            return output, attention_weights
+
+        return output
