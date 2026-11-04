@@ -209,7 +209,7 @@ class TransformerBlock(nn.Module):
 
         return output
 
-class SubwordLangaugeModel(nn.Module):
+class SubwordLanguageModel(nn.Module):
     """Decoder-only Transfomer for next-token prediction."""
 
     def __init__(self, config: ModelConfig) -> None:
