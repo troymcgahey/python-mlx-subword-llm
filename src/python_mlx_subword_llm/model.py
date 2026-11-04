@@ -208,3 +208,81 @@ class TransformerBlock(nn.Module):
             return output, attention_weights
 
         return output
+
+class SubwordLangaugeModel(nn.Module):
+    """Decoder-only Transfomer for next-token prediction."""
+
+    def __init__(self, config: ModelConfig) -> None:
+        super().__init__()
+
+        self.config = config
+
+        self.token_embeddings = nn.Embedding(
+            config.vocabulary_size,
+            config.embedding_size,
+        )
+
+        self.position_embeddings = nn.Embedding(
+            config.context_size,
+            config.embedding_size,
+        )
+
+        self.blocks = [
+            TransformerBlock(config)
+            for _ in range(config.num_layers)
+        ]
+
+        self.final_normalization = nn.LayerNorm(
+            config.embedding_size
+        )
+
+        self.output_projection = nn.Linear(
+            config.embedding_size,
+            config.vocabulary_size,
+            bias=False,
+        )
+
+    def __call__(
+        self,
+        token_ids: mx.array,
+        return_attention: bool = False,
+    ) -> mx.array | tuple[mx.array, list[mx.array]]:
+        
+        _, sequence_length = token_ids.shape
+
+        if sequence_length > self.config.context_size:
+            raise ValueError(
+                f"Sequence length {sequence_length} exceeds "
+                f"context size {self.config.context_size}"
+            )
+
+        positions = mx.arange(sequence_length)
+
+        # Shape: (batch, sequence, embedding)
+        hidden_states = (
+            self.token_embeddings(token_ids)
+            + self.position_embeddings(positions)
+        )
+
+        attention_by_layer: list[mx.array] = []
+
+        for block in self.blocks:
+            if return_attention:
+                hidden_states, attention_weights = block(
+                    hidden_states,
+                    return_attention=True,
+                )
+
+                attention_by_layer.append(attention_weights)
+            else:
+                hidden_states = block(hidden_states)
+
+        hidden_states = self.final_normalization(hidden_states)
+
+        # Shape: (batch, sequence, vocabulary)
+        logits = self.output_projection(hidden_states)
+
+        if return_attention:
+            return logits, attention_by_layer
+
+        return logits
