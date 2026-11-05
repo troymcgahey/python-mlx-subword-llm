@@ -19,6 +19,7 @@ TRAINING_FRACTION = 0.9
 BATCH_SIZE = 8
 RANDOM_SEED = 42
 LEARNING_RATE=3e-4
+NUM_STEPS = 10
 
 def language_model_loss(
     model: SubwordLanguageModel,
@@ -84,49 +85,53 @@ def main() -> None:
         language_model_loss,
     )
 
-    inputs, targets = sample_batch(
+    for step in range(NUM_STEPS):
+        inputs, targets = sample_batch(
+            training_ids,
+            context_size=config.context_size,
+            batch_size=BATCH_SIZE,
+        )
+
+        loss, gradients = loss_and_gradient(
+            model,
+            inputs,
+            targets,
+        )
+
+        optimizer.update(
+            model,
+            gradients,
+        )
+
+        mx.eval(
+            model.parameters(),
+            optimizer.state,
+            loss,
+        )
+
+        print(
+            "Step:", step,
+            "Batch loss", loss.item(),
+        )
+
+    evaluation_inputs, evaluation_targets = sample_batch(
         training_ids,
         context_size=config.context_size,
         batch_size=BATCH_SIZE,
     )
 
-    loss_before_update, gradients = loss_and_gradient(
+    evaluation_loss = language_model_loss(
         model,
-        inputs,
-        targets,
+        evaluation_inputs,
+        evaluation_targets,
     )
 
-    mx.eval(loss_before_update, gradients)
+    mx.eval(evaluation_loss)
 
-    optimizer.update(
-        model,
-        gradients,
+    print(
+        "Fresh-batch training loss:",
+        evaluation_loss.item(),
     )
-
-    mx.eval(
-        model.parameters(),
-        optimizer.state,
-    )
-
-    loss_after_update = language_model_loss(
-        model,
-        inputs,
-        targets,
-    )
-
-    mx.eval(loss_after_update)
-
-    print("Loss before update:", loss_before_update.item())
-    print("Loss after update:", loss_after_update.item())
-
-#    loss = language_model_loss(
-#        model, 
-#        inputs,
-#        targets,
-#    )
-#
-#    mx.eval(loss)
-
 #    print("Vocabulary size:", tokenizer.vocabulary_size)
 #    print("Training tokens:", len(training_ids))
 #    print("Validation tokens:", len(validation_ids))
