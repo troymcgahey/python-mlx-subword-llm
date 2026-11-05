@@ -2,6 +2,7 @@ from pathlib import Path
 
 import mlx.core as mx
 import mlx.nn as nn
+import mlx.optimizers as optim
 
 from python_mlx_subword_llm.config import ModelConfig
 from python_mlx_subword_llm.data import (
@@ -15,8 +16,9 @@ from python_mlx_subword_llm.tokenizer import SubwordTokenizer
 CORPUS_PATH = Path("data/raw/tiny_shakespeare.txt")
 
 TRAINING_FRACTION = 0.9
-BATCH_SIZE = 9
+BATCH_SIZE = 8
 RANDOM_SEED = 42
+LEARNING_RATE=3e-4
 
 def language_model_loss(
     model: SubwordLanguageModel,
@@ -73,27 +75,65 @@ def main() -> None:
 
     model = SubwordLanguageModel(config)
 
+    optimizer = optim.AdamW(
+        learning_rate=LEARNING_RATE,
+    )
+
+    loss_and_gradient = nn.value_and_grad(
+        model,
+        language_model_loss,
+    )
+
     inputs, targets = sample_batch(
         training_ids,
         context_size=config.context_size,
         batch_size=BATCH_SIZE,
     )
 
-    loss = language_model_loss(
-        model, 
+    loss_before_update, gradients = loss_and_gradient(
+        model,
         inputs,
         targets,
     )
 
-    mx.eval(loss)
+    mx.eval(loss_before_update, gradients)
 
-    print("Vocabulary size:", tokenizer.vocabulary_size)
-    print("Training tokens:", len(training_ids))
-    print("Validation tokens:", len(validation_ids))
-    print("Input shape:", inputs.shape)
-    print("Target shape:", targets.shape)
-    print("Predictions per batch:", targets.size)
-    print("Initial loss:", loss.item())
+    optimizer.update(
+        model,
+        gradients,
+    )
+
+    mx.eval(
+        model.parameters(),
+        optimizer.state,
+    )
+
+    loss_after_update = language_model_loss(
+        model,
+        inputs,
+        targets,
+    )
+
+    mx.eval(loss_after_update)
+
+    print("Loss before update:", loss_before_update.item())
+    print("Loss after update:", loss_after_update.item())
+
+#    loss = language_model_loss(
+#        model, 
+#        inputs,
+#        targets,
+#    )
+#
+#    mx.eval(loss)
+
+#    print("Vocabulary size:", tokenizer.vocabulary_size)
+#    print("Training tokens:", len(training_ids))
+#    print("Validation tokens:", len(validation_ids))
+#    print("Input shape:", inputs.shape)
+#    print("Target shape:", targets.shape)
+#    print("Predictions per batch:", targets.size)
+#    print("Initial loss:", loss.item())
 
 
 if __name__ == "__main__":
