@@ -20,6 +20,7 @@ BATCH_SIZE = 8
 RANDOM_SEED = 42
 LEARNING_RATE=3e-4
 NUM_STEPS = 10
+EVALUATION_BATCHES = 10
 
 def language_model_loss(
     model: SubwordLanguageModel,
@@ -47,6 +48,36 @@ def language_model_loss(
         flat_targets,
         reduction="mean",
     )
+
+def estimate_loss(
+    model: SubwordLanguageModel,
+    token_ids: list[int],
+    config: ModelConfig,
+    batch_size: int,
+    num_batches: int,
+) -> float:
+    """Average loss across several randomly sampled batches."""
+
+    losses: list[float] = []
+
+    for _ in range(num_batches):
+        inputs, targets = sample_batch(
+            token_ids,
+            context_size=config.context_size,
+            batch_size=batch_size,
+        )
+
+        loss = language_model_loss(
+            model,
+            inputs,
+            targets,
+        )
+
+        mx.eval(loss)
+
+        losses.append(loss.item())
+
+    return sum(losses) / len(losses)
 
 def main() -> None:
     mx.random.seed(RANDOM_SEED)
@@ -85,7 +116,7 @@ def main() -> None:
         language_model_loss,
     )
 
-    for step in range(NUM_STEPS):
+    for step in range(NUM_STEPS + 1):
         inputs, targets = sample_batch(
             training_ids,
             context_size=config.context_size,
@@ -114,24 +145,50 @@ def main() -> None:
             "Batch loss", loss.item(),
         )
 
-    evaluation_inputs, evaluation_targets = sample_batch(
-        training_ids,
-        context_size=config.context_size,
-        batch_size=BATCH_SIZE,
-    )
-
-    evaluation_loss = language_model_loss(
+    estimated_training_loss = estimate_loss(
         model,
-        evaluation_inputs,
-        evaluation_targets,
+        training_ids,
+        config,
+        batch_size=BATCH_SIZE,
+        num_batches=EVALUATION_BATCHES,
     )
 
-    mx.eval(evaluation_loss)
+    estimated_validation_loss = estimate_loss(
+        model,
+        validation_ids,
+        config,
+        batch_size=BATCH_SIZE,
+        num_batches=EVALUATION_BATCHES,
+    )
 
     print(
-        "Fresh-batch training loss:",
-        evaluation_loss.item(),
+        "Estimated training loss:",
+        estimated_training_loss,
     )
+
+    print(
+        "Estimated validation loss:",
+        estimated_validation_loss,
+    )
+
+#    evaluation_inputs, evaluation_targets = sample_batch(
+#        training_ids,
+#        context_size=config.context_size,
+#        batch_size=BATCH_SIZE,
+#    )
+
+#    evaluation_loss = language_model_loss(
+#        model,
+#        evaluation_inputs,
+#       evaluation_targets,
+#    )
+
+#    mx.eval(evaluation_loss)
+
+#    print(
+#        "Fresh-batch training loss:",
+#        evaluation_loss.item(),
+#    )
 #    print("Vocabulary size:", tokenizer.vocabulary_size)
 #    print("Training tokens:", len(training_ids))
 #    print("Validation tokens:", len(validation_ids))
