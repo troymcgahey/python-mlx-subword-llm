@@ -123,7 +123,7 @@ def main() -> None:
         inputs, targets = sample_batch(
             training_ids,
             context_size=model_config.context_size,
-            batch_size=model_config.batch_size,
+            batch_size=training_config.batch_size,
         )
 
         loss, gradients = loss_and_gradient(
@@ -186,7 +186,7 @@ def main() -> None:
             )
 
             checkpoint_name = (
-                "final",
+                "final"
                 if step == training_config.num_steps
                 else "latest"
             )
@@ -201,127 +201,6 @@ def main() -> None:
             
             print("Saved weights to:", weights_path)
             print("Saved metadata to:", metadata_path)
-
-        
-
-
-    mx.random.seed(RANDOM_SEED)
-
-    tokenizer = SubwordTokenizer()
-
-    config = ModelConfig(
-        vocabulary_size=tokenizer.vocabulary_size
-    )
-
-    text = load_text(CORPUS_PATH)
-
-    training_text, validation_text = split_text(
-        text,
-        training_fraction=TRAINING_FRACTION,
-    )
-
-    training_ids = tokenizer.encode(
-        training_text,
-        add_end_token=True,
-    )
-
-    validation_ids = tokenizer.encode(
-        validation_text,
-        add_end_token=True,
-    )
-
-    model = SubwordLanguageModel(config)
-
-    optimizer = optim.AdamW(
-        learning_rate=LEARNING_RATE,
-    )
-
-    loss_and_gradient = nn.value_and_grad(
-        model,
-        language_model_loss,
-    )
-
-    for step in range(NUM_STEPS + 1):
-        inputs, targets = sample_batch(
-            training_ids,
-            context_size=config.context_size,
-            batch_size=BATCH_SIZE,
-        )
-
-        loss, gradients = loss_and_gradient(
-            model,
-            inputs,
-            targets,
-        )
-
-        optimizer.update(
-            model,
-            gradients,
-        )
-
-        mx.eval(
-            model.parameters(),
-            optimizer.state,
-            loss,
-        )
-
-        print(
-            "Step:", step,
-            "Batch loss", loss.item(),
-        )
-
-    estimated_training_loss = estimate_loss(
-        model,
-        training_ids,
-        config,
-        batch_size=BATCH_SIZE,
-        num_batches=EVALUATION_BATCHES,
-    )
-
-    estimated_validation_loss = estimate_loss(
-        model,
-        validation_ids,
-        config,
-        batch_size=BATCH_SIZE,
-        num_batches=EVALUATION_BATCHES,
-    )
-
-    print(
-        "Estimated training loss:",
-        estimated_training_loss,
-    )
-
-    print(
-        "Estimated validation loss:",
-        estimated_validation_loss,
-    )
-
-#    evaluation_inputs, evaluation_targets = sample_batch(
-#        training_ids,
-#        context_size=config.context_size,
-#        batch_size=BATCH_SIZE,
-#    )
-
-#    evaluation_loss = language_model_loss(
-#        model,
-#        evaluation_inputs,
-#       evaluation_targets,
-#    )
-
-#    mx.eval(evaluation_loss)
-
-#    print(
-#        "Fresh-batch training loss:",
-#        evaluation_loss.item(),
-#    )
-#    print("Vocabulary size:", tokenizer.vocabulary_size)
-#    print("Training tokens:", len(training_ids))
-#    print("Validation tokens:", len(validation_ids))
-#    print("Input shape:", inputs.shape)
-#    print("Target shape:", targets.shape)
-#    print("Predictions per batch:", targets.size)
-#    print("Initial loss:", loss.item())
-
 
 if __name__ == "__main__":
     main()
