@@ -66,7 +66,7 @@ class TrainingConfig:
     learning_rate: float = 3e-4
     weight_decay: float = 0.01
     num_steps: int = 3000
-    log_intervalL int = 100
+    log_interval: int = 100
     evaluation_interval: int = 500
     evaluation_batches: int = 10
     training_fraction: float = 0.9
@@ -79,7 +79,7 @@ class TrainingConfig:
         if self.learning_rate <= 0:
             raise ValueError("learning_rate must be positive")
 
-        if self.weight_decay < -:
+        if self.weight_decay < 0:
             raise ValueError("weight_decay cannot be negative")
 
         if self.num_steps <= 0:
