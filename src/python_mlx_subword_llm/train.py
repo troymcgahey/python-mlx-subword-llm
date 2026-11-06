@@ -12,15 +12,10 @@ from python_mlx_subword_llm.data import (
 )
 from python_mlx_subword_llm.model import SubwordLanguageModel
 from python_mlx_subword_llm.tokenizer import SubwordTokenizer
+from python_mlx_subword_llm.checkpoint import save_checkpoint
+from python_mlx_subword_llm.config import ModelConfig, TrainingConfig
 
 CORPUS_PATH = Path("data/raw/tiny_shakespeare.txt")
-
-TRAINING_FRACTION = 0.9
-BATCH_SIZE = 8
-RANDOM_SEED = 42
-LEARNING_RATE=3e-4
-NUM_STEPS = 10
-EVALUATION_BATCHES = 10
 
 def language_model_loss(
     model: SubwordLanguageModel,
@@ -80,6 +75,136 @@ def estimate_loss(
     return sum(losses) / len(losses)
 
 def main() -> None:
+
+    tokenizer = SubwordTokenizer()
+
+    model_config = ModelConfig(
+        vocabulary_size=tokenizer.vocabulary_size
+    )
+
+    training_config = TrainingConfig()
+
+    mx.random.seed(training_config.random_seed)
+
+    text = load_text(CORPUS_PATH)
+
+    training_text, validation_text = split_text(
+        text,
+        training_fraction=training_config.training_fraction,
+    )
+
+    training_ids = tokenizer.encode(
+        training_text,
+        add_end_token=True,
+    )
+
+    validation_ids = tokenizer.encode(
+        validation_text,
+        add_end_token=True,
+    )
+
+    print("Vocabulary size:", tokenizer.vocabulary_size)
+    print("Training tokens:", len(training_ids))
+    print("Validation tokens:", len(validation_ids))
+
+    model = SubwordLanguageModel(model_config)
+
+    optimizer = optim.AdamW(
+        learning_rate=training_config.learning_rate,
+        weight_decay=training_config.weight_decay,
+    )
+
+    loss_and_gradient = nn.value_and_grad(
+        model,
+        language_model_loss,
+    )
+
+    for step in range (1, training_config.num_steps + 1):
+        inputs, targets = sample_batch(
+            training_ids,
+            context_size=model_config.context_size,
+            batch_size=model_config.batch_size,
+        )
+
+        loss, gradients = loss_and_gradient(
+            model,
+            inputs,
+            targets,
+        )
+
+        optimizer.update(
+            model,
+            gradients,
+        )
+
+        mx.eval(
+            model.parameters(),
+            optimizer.state,
+            loss,
+        )
+
+        if (
+            
+            step == 1 or step % training_config.log_interval == 0
+        ):
+            print(
+                "Step:",
+                step,
+                "Batch loss",
+                loss.item(),
+            )
+
+        should_evaluate = (
+            step % training_config.evaluation_interval == 0
+            or step == training_config.num_steps
+        )
+
+        if should_evaluate:
+            estimated_training_loss = estimate_loss(
+                model,
+                training_ids,
+                model_config,
+                batch_size=training_config.batch_size,
+                num_batches=training_config.evaluation_batches,
+            )
+
+            estimated_validation_loss = estimate_loss(
+                model,
+                validation_ids,
+                model_config,
+                batch_size=training_config.batch_size,
+                num_batches=training_config.evaluation_batches,
+            )
+
+            print(
+                "Step:",
+                step,
+                "Estimated training loss:",
+                estimated_training_loss,
+                "Estimated validation loss:",
+                estimated_validation_loss,
+            )
+
+            checkpoint_name = (
+                "final",
+                if step == training_config.num_steps
+                else "latest"
+            )
+
+            weights_path, metadata_path = save_checkpoint(
+                model=model,
+                model_config=model_config,
+                training_config=training_config,
+                step=step,
+                name=checkpoint_name,
+            )
+            
+            print("Saved weights to:", weights_path)
+            print("Saved metadata to:", metadata_path)
+
+        
+
+
     mx.random.seed(RANDOM_SEED)
 
     tokenizer = SubwordTokenizer()
