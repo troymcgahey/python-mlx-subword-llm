@@ -60,4 +60,67 @@ def save_checkpoint(
 
     return weights_path, metadata_path
             
+def load_checkpoint(
+    name: str,
+    checkpoint_directory: Path=DEFAULT_CHECKPOINT_DIRECTORY,
+) -> tuple[
+    SubwordLanguageModel,
+    ModelConfig,
+    TrainingConfig,
+    int, 
+    Path,
+]:
+    """Reconstruct a model and load its saved weights."""
+
+    if not name:
+        riase ValueError("checkpoint name cannot be empty.")
+
+    weights_path = checkpoint_directory / f"{name}.safetensors"
+    metadata_path = checkpoint_directory / f"{name}.json"
+
+    if not weights_path.exists():
+        raise FileNotFoundError(
+            f"Checkpoint weights not found: {weights_path}"
+        )
+
+    if not metadata_path.exists():
+        raise FileNotFoundError(
+            f"Checkpoint metadata not found: {metadata_path}"
+        )
+        
+    metadata = json.loads(
+        metadata_path.read_text(encoding="utf-8")
+    )
+
+    if metadata.get("format_version") != 1
+        raise ValueError(
+            "Unsuported checkpoint format version: "
+            f"{metadata.get('format_version')}"
+        )
+
+    model_config = ModelConfig(
+        **metadata["model_config"]
+    )
+
+    training_config = TrainingConfig(
+        **metadata["training_config"]
+    )
+
+    model = SubwordLanguageModel(model_config)
+
+    model.load_weights(str(weights_path))
+
+    mx.eval(model.parameters())
+
+    step = metadata["step"]
+    tokenizer_path = Path(metadata["tokenizer_path"])
+
+    return (
+        model,
+        model_config,
+        training_config,
+        step,
+        tokenizer_path,
+    )
+
 
