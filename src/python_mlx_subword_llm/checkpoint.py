@@ -73,7 +73,7 @@ def load_checkpoint(
     """Reconstruct a model and load its saved weights."""
 
     if not name:
-        riase ValueError("checkpoint name cannot be empty.")
+        raise ValueError("checkpoint name cannot be empty.")
 
     weights_path = checkpoint_directory / f"{name}.safetensors"
     metadata_path = checkpoint_directory / f"{name}.json"
@@ -92,7 +92,7 @@ def load_checkpoint(
         metadata_path.read_text(encoding="utf-8")
     )
 
-    if metadata.get("format_version") != 1
+    if metadata.get("format_version") != 1:
         raise ValueError(
             "Unsuported checkpoint format version: "
             f"{metadata.get('format_version')}"
