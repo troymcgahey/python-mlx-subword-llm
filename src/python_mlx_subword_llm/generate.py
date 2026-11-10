@@ -7,7 +7,7 @@ from python_mlx_subword_llm.tokenizer import SubwordTokenizer
 
 def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        decsription="Generate text with a trained subword model."
+        description="Generate text with a trained subword model."
     )
 
     parser.add_argument(
@@ -23,7 +23,7 @@ def parse_arguments() -> argparse.Namespace:
     )
 
     parser.add_argument(
-        "--max-new_tokens",
+        "--max-new-tokens",
         type=int,
         default=200,
         help="Maximum number of subword tokens to generate.",
@@ -78,9 +78,9 @@ def generate(
         raise ValueError("Tokenizer vocabulary size does not match the model"
     )
 
-    generate_ids = tokenizer.encode(prompt)
+    generated_ids = tokenizer.encode(prompt)
 
-    if not generate_ids:
+    if not generated_ids:
         raise ValueError("The prompt did not produce any tokens."
     )
 
@@ -91,9 +91,9 @@ def generate(
         f"from step {checkpoint_step}"
     )
 
-    for _ in range(max_new_token):
+    for _ in range(max_new_tokens):
         context_ids = generated_ids[
-            -model_condif.context_size:
+            -model_config.context_size:
         ]
 
         model_inputs = mx.array(
